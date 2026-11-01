@@ -23,8 +23,8 @@ Mobilní aplikace ve Flutteru pro sledování pohybové aktivity a pitného rež
 | Nástroje | VS Code, Git & GitHub, Figma |
 
 # Aktuální zpracování
-Můj dosavadní projekt používá senzory v telefonu na vypočítání kroků, ale problém je v jeho zaznamení je moc citliví a zatím nepoužívá tracking GPS. 
-V Budoucnu přidám vššechny ostatní funkce.
+Můj dosavadní projekt používá senzory v telefonu na vypočítání kroků, ale problém je v jeho zaznamení Je moc citliví, tudíž když s ním třepete pomalu zaznamenává kroky a zatím nepoužívá tracking GPS. 
+V Budoucnu přidám všechny ostatní funkce.
 
 ## Požadavky
 - Flutter SDK, Android Studio (Android SDK + JDK 17), Git
