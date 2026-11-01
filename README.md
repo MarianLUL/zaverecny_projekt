@@ -20,17 +20,26 @@ Mobilní aplikace ve Flutteru pro sledování pohybové aktivity a pitného rež
 | Senzory | `sensors_plus` (akcelerometr, barometr), `geolocator` (GPS a nadmořská výška) |
 | Data | `sqflite` (SQLite), `shared_preferences` (profil a nastavení) |
 | Ostatní knihovny | `provider` (stav aplikace), `fl_chart` (grafy), `permission_handler` (oprávnění) |
-| Nástroje | Android Studio, VS Code, Git & GitHub, Figma |
+| Nástroje | VS Code, Git & GitHub, Figma |
 
-## Jak se počítá převýšení a kalorie
+# Aktuální zpracování
+Můj dosavadní projekt používá senzory v telefonu na vypočítání kroků, ale problém je v jeho zaznamení je moc citliví a zatím nepoužívá tracking GPS. 
+V Budoucnu přidám vššechny ostatní funkce.
 
-- Z GPS (případně barometru) se zaznamenává nadmořská výška, data se vyhlazují, aby šum nezkresloval výsledek.
-- Sčítají se zvlášť metry nahoru a dolů.
-- Kalorie vycházejí z hodnoty MET podle typu pohybu a přičítá se k nim energie za překonané převýšení, takže stejná trasa do kopce vyjde náročnější než po rovině.
+## Požadavky
+- Flutter SDK, Android Studio (Android SDK + JDK 17), Git
+- Windows: zapnutý Developer Mode
+- Android telefon se zapnutým laděním USB (doporučeno)
 
-## Pitný režim
+## Spuštění
+git clone https://github.com/<tvoje-jmeno>/stepsense.git
+cd stepsense
+flutter doctor --android-licenses
+flutter pub get
+flutter run
 
-- Základní denní cíl se odvozuje z váhy uživatele.
-- K cíli se přičítá doporučený příjem podle délky a náročnosti aktivity (včetně převýšení).
-- Uživatel jedním klepnutím přidá vypitou sklenici, láhev nebo vlastní množství.
-- Přehled zobrazuje splnění denního cíle a historii.
+## Řešení problémů
+- Chyba `different roots` (Windows): nastavte PUB_CACHE na stejný disk jako projekt.
+- Zařízení nenalezeno: zkontrolujte datový kabel a ladění USB (`adb devices`).
+
+
