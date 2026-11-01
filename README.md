@@ -32,11 +32,11 @@ V Budoucnu přidám všechny ostatní funkce.
 - Android telefon se zapnutým laděním USB (doporučeno)
 
 ## Spuštění
-git clone https://github.com/MarianLUL/zav
-cd stepsense
-flutter doctor --android-licenses
-flutter pub get
-flutter run
+- git clone https://github.com/MarianLUL/zav
+- cd stepsense
+- flutter doctor --android-licenses
+- flutter pub get
+- flutter run
 
 ## Řešení problémů
 - Chyba `different roots` (Windows): nastavte PUB_CACHE na stejný disk jako projekt.
