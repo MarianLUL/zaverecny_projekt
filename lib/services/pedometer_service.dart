@@ -7,16 +7,17 @@ class PedometerService {
   Stream<int> get stepStream => _controller.stream;
 
   StreamSubscription<StepCount>? _sub;
-  int? _baseline;
+  int? _baseline; // hodnota čítače při startu
   int steps = 0;
 
   Future<bool> start() async {
     final status = await Permission.activityRecognition.request();
     if (!status.isGranted) return false;
-    
+
     _baseline = null;
     _sub = Pedometer.stepCountStream.listen(
       (event) {
+        // senzor vrací počet kroků od restartu telefonu
         _baseline ??= event.steps;
         steps = event.steps - _baseline!;
         _controller.add(steps);
@@ -38,7 +39,7 @@ class PedometerService {
   }
 
   void dispose() {
-    _sub?.cancel();
+    stop();
     _controller.close();
   }
 }
