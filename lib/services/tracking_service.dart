@@ -63,19 +63,21 @@ class TrackingService extends ChangeNotifier {
   // STAV (čte ho obrazovka)
   // ===========================================================
  
-  bool running = false;       // měření běží
-  bool gpsGood = false;       // GPS má dostatečnou přesnost
-  bool moving = false;        // GPS hlásí pohyb
-  bool usingHardware = false; // zdroj kroků: hardware (true) / akcelerometr (false)
+  bool running = false;        // měření běží
+  bool gpsGood = false;        // GPS má dostatečnou přesnost
+  bool moving = false;         // GPS hlásí pohyb
+  bool usingHardware = false;  // zdroj kroků: hardware (true) / akcelerometr (false)
+  bool countStepsWithoutGps = true; // Když GPS signál chybí (uvnitř budov), počítat kroky i bez potvrzení pohybu.
  
-  int steps = 0;              // ověřené kroky
-  int rejectedSteps = 0;      // zahozené kroky (třesení apod.)
+  int steps = 0;               // ověřené kroky
+  int rejectedSteps = 0;       // zahozené kroky (třesení apod.)
  
-  double distanceM = 0;       // ušlá vzdálenost v metrech
-  double ascentM = 0;         // nastoupané metry
-  double descentM = 0;        // sestoupané metry
-  double altitudeM = 0;       // aktuální nadmořská výška
-  double speedKmh = 0;        // okamžitá rychlost
+  double distanceM = 0;        // ušlá vzdálenost v metrech
+  double ascentM = 0;          // nastoupané metry
+  double descentM = 0;         // sestoupané metry
+  double altitudeM = 0;        // aktuální nadmořská výška
+  double fallbackDistanceM = 0;// vzdálenost odhadnutá z kroků bez GPS
+  double speedKmh = 0;         // okamžitá rychlost
   Duration movingTime = Duration.zero; // čistý čas pohybu (bez stání)
  
   /// Body trasy, které se vykreslují na mapě.
@@ -88,6 +90,7 @@ class TrackingService extends ChangeNotifier {
   DateTime? _startTime;     // kdy měření začalo
   DateTime? _lastMovingAt;  // kdy GPS naposledy potvrdilo pohyb
   DateTime? _lastMoveTime;  // čas předchozího GPS bodu při pohybu
+  DateTime? _lastGoodFixAt; // kdy přišel naposledy kvalitní GPS bod
   LatLng? _lastPoint;       // předchozí bod pro výpočet vzdálenosti
   double? _smoothAlt;       // vyhlazená nadmořská výška
   double? _refAlt;          // referenční výška pro počítání převýšení
@@ -101,7 +104,7 @@ class TrackingService extends ChangeNotifier {
   // VYPOČÍTANÉ HODNOTY
   // ===========================================================
  
-  double get distanceKm => distanceM / 1000;
+  double get distanceKm => (distanceM + fallbackDistanceM) / 1000;
  
   /// Průměrná rychlost = vzdálenost / čas pohybu.
   double get avgSpeedKmh =>
@@ -207,11 +210,13 @@ class TrackingService extends ChangeNotifier {
     descentM = 0;
     altitudeM = 0;
     speedKmh = 0;
+    fallbackDistanceM = 0;
     movingTime = Duration.zero;
     route.clear();
     _lastPoint = null;
     _lastMoveTime = null;
     _lastMovingAt = null;
+    _lastGoodFixAt = null;
     _smoothAlt = null;
     _refAlt = null;
     gpsGood = false;
@@ -224,23 +229,33 @@ class TrackingService extends ChangeNotifier {
  
   /// Volá se při každé změně celkového počtu kroků ze zdroje.
   void _onStepTotal(int total) {
-    // Kolik kroků přibylo od minula.
-    final delta = total - _lastTotal;
-    _lastTotal = total;
-    if (delta <= 0) return;
- 
-    // Potvrdilo GPS pohyb v nedávné době?
-    final now = DateTime.now();
-    final recentlyMoving =
-        _lastMovingAt != null && now.difference(_lastMovingAt!) <= movingGrace;
- 
-    if (recentlyMoving || !requireGps) {
-      steps += delta;          // platný krok
-    } else {
-      rejectedSteps += delta;  // krok bez pohybu podle GPS (třesení)
-    }
-    notifyListeners();
+  final delta = total - _lastTotal;
+  _lastTotal = total;
+  if (delta <= 0) return;
+
+  final now = DateTime.now();
+
+  // Potvrdilo GPS pohyb v nedávné době?
+  final recentlyMoving =
+      _lastMovingAt != null && now.difference(_lastMovingAt!) <= movingGrace;
+
+  // Je GPS vůbec dostupné (měli jsme kvalitní bod v posledních sekundách)?
+  final gpsAvailable = _lastGoodFixAt != null &&
+      now.difference(_lastGoodFixAt!) <= gpsTimeout;
+
+  if (!requireGps || recentlyMoving) {
+    // GPS pohyb potvrdilo, nebo ověřování vypnuto.
+    steps += delta;
+  } else if (!gpsAvailable && countStepsWithoutGps) {
+    // GPS nemáme (uvnitř): kroky bereme a vzdálenost odhadneme z délky kroku.
+    steps += delta;
+    fallbackDistanceM += delta * heightCm * 0.415 / 100;
+  } else {
+    // GPS máme a hlásí, že stojíme: krok je podezřelý (třesení).
+    rejectedSteps += delta;
   }
+  notifyListeners();
+}
  
   // ===========================================================
   // GPS: poloha, vzdálenost, rychlost, převýšení, trasa
@@ -257,6 +272,7 @@ class TrackingService extends ChangeNotifier {
       return;
     }
     gpsGood = true;
+   _lastGoodFixAt = now;
  
     // Rychlost (záporná hodnota = neznámá) a stav pohybu.
     final speedMs = p.speed < 0 ? 0.0 : p.speed;
